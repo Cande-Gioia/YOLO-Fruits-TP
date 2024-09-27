@@ -1,12 +1,16 @@
 import pandas as pd
 from PIL import Image
+import xml.etree.ElementTree as ET
 
 def create_DF(files,images_dir):
     """
     Convierte una lista de PosixPaths en un dataframe
     """
+
+
     df = pd.DataFrame([])
     for file in files:
+        tree = ET.parse(files)
         aux_df = pd.read_csv(file, names=["label","left","top","right","bottom"], sep=" ")
         try:
             image_file = next(images_dir.glob(f"**/{file.stem}*jpg"))
