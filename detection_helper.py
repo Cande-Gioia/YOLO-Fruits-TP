@@ -6,23 +6,45 @@ def create_DF(files,images_dir):
     """
     Convierte una lista de PosixPaths en un dataframe
     """
-
-
     df = pd.DataFrame([])
     for file in files:
-        tree = ET.parse(files)
-        aux_df = pd.read_csv(file, names=["label","left","top","right","bottom"], sep=" ")
+        tree = ET.parse(file)
+        root = tree.getroot()
+
+        image_dic = []
+
+        for obj in root.findall('object'):
+            label = obj.find('name').text       # pineapple
+            image = file.stem + ".png"          # fruit0.png
+            bndbox = obj.find('bndbox')         
+            xmin = float(bndbox.find('xmin').text)      # 38
+            ymin = float(bndbox.find('ymin').text)     # 18
+            xmax = float(bndbox.find('xmax').text)     # 271)
+            ymax = float(bndbox.find('ymax').text)      # 227)
+
+            image_dic.append({
+                "label" : label,
+                "left" : xmin, 
+                "top" : ymin, 
+                "right" : xmax,
+                "bottom" : ymax
+            })
+        
+        aux_df = pd.DataFrame(image_dic)
+        
         try:
-            image_file = next(images_dir.glob(f"**/{file.stem}*jpg"))
-            img = Image.open(image_file)
-            aux_df["height"],aux_df["width"]=img.size
+            image_file = next(images_dir.glob(f"**/{file.stem}*png"))
+            aux_df["height"] = root.find('size').find('height').text
+            aux_df["width"] = root.find('size').find('width').text
             aux_df["image"] = image_file
-            aux_df["image_name"] = image_file.stem
+            aux_df["image_name"] = root.find('filename').text
             df = df.append(aux_df, ignore_index=True)
         except:
             print(file.stem)
-    df["center_x"] = (df["right"] +df["left"])/2
-    df["center_y"] = (df["bottom"] +df["top"])/2
+            
+    df["center_x"] = (df["right"] + df["left"])/2
+    df["center_y"] = (df["bottom"] + df["top"])/2
     df["delta_x"] = df["right"] - df["left"]
-    df["delta_y"] = (df["bottom"] -df["top"])
+    df["delta_y"] = df["bottom"] - df["top"]
+
     return df
